@@ -1,0 +1,26 @@
+{
+  "javascript.0.scriptEnabled.Alexa-Anfragen.jsAlexaSummery": {
+    "_id": "javascript.0.scriptEnabled.Alexa-Anfragen.jsAlexaSummery",
+    "common": {
+      "name": "scriptEnabled.Alexa-Anfragen.jsAlexaSummery",
+      "desc": "controls script activity",
+      "type": "boolean",
+      "write": true,
+      "read": true,
+      "role": "switch.active"
+    },
+    "native": {
+      "script": "script.js.Alexa-Anfragen.jsAlexaSummery"
+    },
+    "type": "state",
+    "from": "system.adapter.javascript.0",
+    "user": "system.user.admin",
+    "ts": 1611389579221,
+    "acl": {
+      "object": 1636,
+      "state": 1636,
+      "owner": "system.user.admin",
+      "ownerGroup": "system.group.administrator"
+    }
+  }
+}

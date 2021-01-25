@@ -1,0 +1,33 @@
+/* -- do not edit following lines - START --
+{
+  "expert": true,
+  "debug": false,
+  "verbose": false
+}
+-- do not edit previous lines - END --*/
+var strEchoID;
+
+
+on({id: 'javascript.0.scriptEnabled.Alexa-Anfragen.jsonAlexaOutput', change: "ne"}, function (obj) {
+    var value = obj.state.val;
+    var jsonOutput = JSON.parse(value);
+      
+    console.log("cmds.length "+jsonOutput.commands.length);     
+    for (var i = 0; i < jsonOutput.commands.length; i++) {
+        var cmd = jsonOutput.commands[i];
+        if (!!cmd.speak.length) { 
+            setState('alexa2.0.Echo-Devices.'+(cmd.serialNumber + '.Commands.speak-volume'), cmd.speakVolume, false);
+            console.log((['Alexa volume: "',cmd.speakVolume,'" auf Echo: ',cmd.serialNumber].join('')));            
+        } else {/*string is empty – shut up*/}
+    }
+    for (var i = 0; i < jsonOutput.commands.length; i++) {
+        var cmd = jsonOutput.commands[i];
+        if (!!cmd.speak.length) { 
+            setState('alexa2.0.Echo-Devices.'+(cmd.serialNumber + '.Commands.speak'), cmd.speak, false);
+            console.log((['Alexa output: "',cmd.speak,'" auf Echo: ',cmd.serialNumber].join('')));            
+        } else {/*string is empty – shut up*/}
+    }
+
+
+    
+});

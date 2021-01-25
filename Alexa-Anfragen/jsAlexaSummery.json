@@ -1,0 +1,156 @@
+/* -- do not edit following lines - START --
+{
+  "expert": true,
+  "debug": false,
+  "verbose": false
+}
+-- do not edit previous lines - END --*/
+ //Wenn ein Echo nach Luftfeuchtigkeit, Temperatur oder  Luftdruck gefragt wird, prüft das Skript, 
+ //ob ein spezieller Raumname angefragt wurde und gibt entsprechend den Wert für den angefragten Raum
+ //oder den Raum, in dem der Echo steht an. Um ein Dazwischenquatschen der Dame zu verhindern, 
+ //müssen leere Routinen in Alexa für die jeweiligen Fragen hinterlegt werden, da ansonsten 
+ //"Dies wird nicht unterstützt" nahezu zeitgleich zur Antwort des Skript ausgegeben wird.
+ 
+ //Allgemeine Sensorinformationen
+ var m_jsonSensorInfo = {
+        Temperatur: {Unit:'°C', Artikel:'die'},
+        Luftfeuchtigkeit: {Unit:'%', Artikel:'die'},
+        Luftdruck: {Unit:'Hektopascal', Artikel:'der'},
+}
+
+
+//Versucht aus Parameter einen Raumnamen zu filtern und gibt entsprechend vordefinierte JSons zurück. 
+//Die Pfade zu den jweiligen Sensoren müssen manuell hinterlegt werden
+function getRoomInfo(strText) {   
+    var blnSuccess = true;
+    var jsonRoom = {};
+    strText = strText.toLowerCase();
+    if ((strText.indexOf('garten') >= 0)||(strText.indexOf('draußen') >= 0)) {
+        jsonRoom.In = "im Garten";
+        jsonRoom.Name = "Garten";
+        jsonRoom.TemperaturID = 'alias.0.Sensoren.Garten-Temperatur.ACTUAL'/*Actual*/;        
+        jsonRoom.LuftfeuchtigkeitID = 'alias.0.Sensoren.Garten-Luftfeuchtigkeit.ACTUAL'/*Actual*/;
+        jsonRoom.LuftdruckID = 'alias.0.Sensoren.Garten-Luftdruck.ACTUAL'/*Actual*/;        
+    }
+    else if (strText.indexOf('dusche') >= 0) {
+        jsonRoom.In = "in der Dusche";
+        jsonRoom.Name = "Dusche"
+        jsonRoom.TemperaturID = 'alias.0.Sensoren.Dusche-Temperatur.ACTUAL'/*Actual*/;        
+        jsonRoom.LuftfeuchtigkeitID = 'alias.0.Sensoren.Dusche-Luftfeuchtigkeit.ACTUAL'/*Actual*/;
+        jsonRoom.LuftdruckID = 'alias.0.Sensoren.Dusche-Luftdruck.ACTUAL'/*Actual*/;
+    }
+    else if (strText.indexOf('chili glas') >= 0) {
+        jsonRoom.In = "im Glas";
+        jsonRoom.Name = "Glas"
+        jsonRoom.TemperaturID = 'alias.0.Sensoren.Wohnzimmer-Temperatur.ACTUAL'/*Actual*/;        
+        jsonRoom.LuftfeuchtigkeitID = 'alias.0.Sensoren.Wohnzimmer-Luftfeuchtigkeit.ACTUAL'/*Actual*/;
+        jsonRoom.LuftdruckID = 'alias.0.Sensoren.Wohnzimmer-Luftdruck.ACTUAL'/*Actual*/;
+    }
+    else if (strText.indexOf('schlafzimmer') >= 0) {
+        jsonRoom.In = "im Schlafzimmer";
+        jsonRoom.Name = "Schlafzimmer";
+    }
+    else if (strText.indexOf('badezimmer') >= 0) {
+        jsonRoom.In = "im Badezimmer";
+        jsonRoom.Name = "Badezimmer"        
+    }
+    else if (strText.indexOf('kinderzimmer') >= 0) {
+        jsonRoom.In = "im Kinderzimmer";
+        jsonRoom.Name = "Kinderzimmer"
+    }
+    else if (strText.indexOf('küche') >= 0) {
+        jsonRoom.In = "in der Küche";
+        jsonRoom.Name = "Küche"
+    } 
+    else if (strText.indexOf('esszimmer') >= 0) {
+        jsonRoom.In = "im Esszimmer";
+        jsonRoom.Name = "Esszimmer"
+    }
+    else if ((strText.indexOf('wohnzimmer') >= 0)||(strText.indexOf('anbau') >= 0)) {
+        jsonRoom.In = "im Wohnzimmer";
+        jsonRoom.Name = "Wohnzimmer";
+        jsonRoom.TemperaturID = 'alias.0.Sensoren.Wohnzimmer-Temperatur.ACTUAL'/*Actual*/;        
+        jsonRoom.LuftfeuchtigkeitID = 'alias.0.Sensoren.Wohnzimmer-Luftfeuchtigkeit.ACTUAL'/*Actual*/;
+        jsonRoom.LuftdruckID = 'alias.0.Sensoren.Wohnzimmer-Luftdruck.ACTUAL'/*Actual*/;
+
+    }
+    else if (strText.indexOf('keller') >= 0) {
+        jsonRoom.In = "im Keller";
+        jsonRoom.Name = "Keller";
+    }
+    else if (strText.indexOf('dachboden') >= 0) {
+        jsonRoom.In = "auf dem Dachboden";
+        jsonRoom.Name = "Dachboden";
+    }
+    else{
+        blnSuccess = false;
+    }
+    console.log(blnSuccess?jsonRoom.Name:("es wurde kein Raum erkannt: <"+strText+">"));
+    return jsonRoom;
+}
+
+//Wenn nach erfolgter Spracheingabe ein Invalid oder Success in der Historie des Alexa2-Adapters steht, 
+//interpretiert das Skript den Befehl
+ on({id: "alexa2.0.History.json"/*json*/, change: "ne"}, function (obj) { 
+  var jsonSummary = JSON.parse(obj.state.val);
+  console.log("triggered: "+jsonSummary["status"]);
+  var strStatus = jsonSummary.status;
+  if(strStatus == "SUCCESS"||strStatus == "INVALID"){    
+    console.log(jsonSummary);
+    console.log(jsonSummary.summary);
+    var strCmd = jsonSummary.summary.toLowerCase();
+    var strEchoSN = jsonSummary.serialNumber;
+    
+    console.log('Aktualraumabfrage');
+    var objRoom =  getObject('alexa2.0.Echo-Devices.'+strEchoSN+'.Info.serialNumber', 'rooms'); 
+    var strEchoRoom = (objRoom.enumNames.length>0)? objRoom.enumNames[0].de: jsonSummary.name;    
+    var jsonRequestRoomInfo = getRoomInfo(strEchoRoom);
+
+    console.log('Zielraumabfrage');
+    var jsonTargetRoomInfo = getRoomInfo(strCmd);
+    
+    var strSensor = strCmd.indexOf('luftfeuchtigkeit') > 0?'Luftfeuchtigkeit'
+                        //:strCmd.indexOf('temperatur') > 0?'Temperatur'//Diese Zeile nur auskommentieren, falls die Temperatursensoren bereits über iot o.ä. angebunden sind
+                        :strCmd.indexOf('luftdruck') > 0?'Luftdruck'
+                        :null;
+
+    if (strSensor) {
+        //Choose right room
+        var jsonUseRoom, blnUseTargetRoom;
+        if(Object.keys(jsonTargetRoomInfo).length === 0 && jsonTargetRoomInfo.constructor === Object){       
+            //No target room detected in cmd. Use the room where the echo has been asked
+            console.log('jsonTargetRoomInfo ist null. Nutze den Raum der Anfrage.');
+            jsonUseRoom = jsonRequestRoomInfo;
+            blnUseTargetRoom = false;
+        }
+        else{
+            console.log('jsonTargetRoomInfo gefüllt. Nutze Zielraum zur Sensorabfrage');
+            jsonUseRoom = jsonTargetRoomInfo;
+            blnUseTargetRoom = true;
+        }
+
+        var strSpeak;
+        if(jsonUseRoom[strSensor+"ID"]){
+            console.log('Sensor im angebundenen Raum erkannt');
+            var dblVal = getState(jsonUseRoom[strSensor+"ID"]).val;
+            strSpeak = (blnUseTargetRoom?"":"Hier ")+jsonUseRoom.In 
+                        + " beträgt "+m_jsonSensorInfo[strSensor].Artikel+" "+strSensor+ " " 
+                        + Math.round(dblVal) + " "+m_jsonSensorInfo[strSensor].Unit+".";
+        }
+        else{
+            console.log('Kein Sensor im angebundenen Raum gefunden');
+            /*Keine Ausgabe wenn ganz allgemein nach den Werten gefragt wird, da Alexa hier Wetterdaten heranzieht. Nur für speziell angefragte Räume antworten*/
+            strSpeak = blnUseTargetRoom?jsonUseRoom.In + " ist kein "+strSensor+"sensor bekannt.":null;
+        }
+        if(strSpeak){
+            var strJsonCmd = '{"commands":[{"serialNumber":"'+strEchoSN+'","speak":"'+strSpeak+'","speakVolume":'+40+'}],"creationTime":'+ ((new Date()).getTime())+'}'
+            console.log("Send cmd: "+strJsonCmd);
+            setState('javascript.0.scriptEnabled.Alexa-Anfragen.jsonAlexaOutput', strJsonCmd);           
+        } else {/*Nichts zu sagen*/}         
+    }
+  }
+});
+
+
+
+
